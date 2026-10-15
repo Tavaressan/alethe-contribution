@@ -7,6 +7,39 @@ pub const OPEN_PATH_EVENT: &str = "alethe://open-path";
 
 const OPEN_PATH_FLAG: &str = "--open-path";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CliAction {
+    LaunchGui,
+    PrintVersion,
+    PrintHelp,
+}
+
+pub fn parse_cli_action(args: &[String]) -> CliAction {
+    let mut iter = args.iter().skip(1);
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--version" | "-V" => return CliAction::PrintVersion,
+            "--help" | "-h" => return CliAction::PrintHelp,
+            OPEN_PATH_FLAG => {
+                iter.next();
+            }
+            _ => {}
+        }
+    }
+    CliAction::LaunchGui
+}
+
+pub fn cli_action_output(action: CliAction) -> Option<String> {
+    match action {
+        CliAction::LaunchGui => None,
+        CliAction::PrintVersion => Some(format!("alethe {}\n", env!("CARGO_PKG_VERSION"))),
+        CliAction::PrintHelp => Some(format!(
+            "alethe {}\n\nUsage:\n  alethe [path]\n  alethe --open-path <path>\n  alethe --version\n  alethe --help\n",
+            env!("CARGO_PKG_VERSION")
+        )),
+    }
+}
+
 #[derive(Default)]
 pub struct PendingOpen(Mutex<Option<String>>);
 
@@ -110,6 +143,63 @@ mod tests {
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|item| item.to_string()).collect()
+    }
+
+    #[test]
+    fn parses_long_and_short_version_flags() {
+        for flag in ["--version", "-V"] {
+            assert_eq!(
+                parse_cli_action(&args(&["alethe", flag])),
+                CliAction::PrintVersion
+            );
+        }
+    }
+
+    #[test]
+    fn parses_long_and_short_help_flags() {
+        for flag in ["--help", "-h"] {
+            assert_eq!(parse_cli_action(&args(&["alethe", flag])), CliAction::PrintHelp);
+        }
+    }
+
+    #[test]
+    fn print_flags_work_after_paths_and_other_flags() {
+        assert_eq!(
+            parse_cli_action(&args(&["alethe", "--open-path", "/tmp/x", "--help"])),
+            CliAction::PrintHelp
+        );
+        assert_eq!(
+            parse_cli_action(&args(&["alethe", "/tmp/x", "-V"])),
+            CliAction::PrintVersion
+        );
+    }
+
+    #[test]
+    fn unknown_flags_still_launch_gui() {
+        assert_eq!(
+            parse_cli_action(&args(&["alethe", "--unknown"])),
+            CliAction::LaunchGui
+        );
+    }
+
+    #[test]
+    fn paths_and_open_path_values_are_not_print_actions() {
+        assert_eq!(
+            parse_cli_action(&args(&["alethe", "--open-path", "--version"])),
+            CliAction::LaunchGui
+        );
+        assert_eq!(
+            parse_cli_action(&args(&["alethe", "/tmp/--help"])),
+            CliAction::LaunchGui
+        );
+        assert_eq!(
+            cli_action_output(CliAction::PrintVersion),
+            Some(format!("alethe {}\n", env!("CARGO_PKG_VERSION")))
+        );
+        assert!(cli_action_output(CliAction::PrintHelp)
+            .unwrap()
+            .contains("alethe --help"));
+        assert_eq!(cli_action_output(CliAction::LaunchGui), None);
     }
 
     fn temp_root() -> PathBuf {

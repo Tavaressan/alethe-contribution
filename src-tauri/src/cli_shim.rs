@@ -88,7 +88,7 @@ fn sh_single_quote(value: &str) -> String {
 }
 
 #[cfg(not(windows))]
-fn unix_shim_script(target_marker: &str, launch: &str) -> String {
+fn unix_shim_script(target_marker: &str, launch: &str, print_flags: &str) -> String {
     format!(
         r#"#!/bin/sh
 # alethe — abre um diretório no Alethe a partir do terminal.
@@ -104,6 +104,12 @@ fn unix_shim_script(target_marker: &str, launch: &str) -> String {
 # ALETHE_TARGET_BIN: {target_marker}
 
 set -e
+
+case "${{1:-}}" in
+  --version|-V|--help|-h)
+    exec {print_flags} "$@"
+    ;;
+esac
 
 target=${{1:-.}}
 
@@ -125,9 +131,11 @@ fn render_shim(binary: &Path) -> Result<String, String> {
     {
         if let Some(bundle) = app_bundle(binary) {
             let quoted = sh_single_quote(&bundle.to_string_lossy());
+            let quoted_binary = sh_single_quote(&binary.to_string_lossy());
             return Ok(unix_shim_script(
                 &bundle.to_string_lossy(),
                 &format!("exec open -na {quoted} --args --open-path \"$target\""),
+                &quoted_binary,
             ));
         }
         let quoted = sh_single_quote(&binary.to_string_lossy());
@@ -137,6 +145,7 @@ fn render_shim(binary: &Path) -> Result<String, String> {
                 "nohup {quoted} --open-path \"$target\" >/dev/null 2>&1 &\n\
                  exit 0"
             ),
+            &quoted,
         ));
     }
 
@@ -149,6 +158,7 @@ fn render_shim(binary: &Path) -> Result<String, String> {
                 "nohup {quoted} --open-path \"$target\" >/dev/null 2>&1 &\n\
                  exit 0"
             ),
+            &quoted,
         ));
     }
 
@@ -166,6 +176,10 @@ rem
 rem ALETHE_TARGET_BIN: {binary}
 
 setlocal
+if "%~1"=="--version" goto print_flags
+if "%~1"=="-V" goto print_flags
+if "%~1"=="--help" goto print_flags
+if "%~1"=="-h" goto print_flags
 set "target=%~1"
 if "%target%"=="" set "target=%CD%"
 
@@ -178,6 +192,11 @@ if not exist "%target%\" (
 )
 
 start "" "{binary}" --open-path "%target%"
+goto :eof
+
+:print_flags
+"{binary}" %*
+exit /b %errorlevel%
 "#
         ));
     }
@@ -448,6 +467,18 @@ mod tests {
 
         assert!(script.contains("target=${1:-.}"));
         assert!(script.contains("--open-path"));
+        assert!(script.contains("--version|-V|--help|-h"));
+        assert!(script.contains("exec '/opt/alethe/alethe' \"$@\""));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_shim_print_flags_run_in_foreground() {
+        let script = render_shim(Path::new(r"C:\Alethe\alethe.exe")).expect("script");
+        assert!(script.contains("if \"%~1\"==\"--version\" goto print_flags"));
+        assert!(script.contains(":print_flags"));
+        assert!(script.contains("\"C:\\Alethe\\alethe.exe\" %*"));
+        assert!(script.contains("exit /b %errorlevel%"));
     }
 
     #[cfg(not(windows))]
