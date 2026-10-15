@@ -44,6 +44,18 @@ fn exit_reason(teardown: u8) -> &'static str {
     }
 }
 
+fn wsl_launcher_for_spawn<'a>(
+    requested_command: Option<&'a str>,
+    launcher_override: Option<&'a str>,
+) -> Option<&'a str> {
+    let valid_override = launcher_override.filter(|value| {
+        let value = value.trim();
+        let has_path_separator = value.contains('/') || value.contains('\\');
+        !has_path_separator || Path::new(value).is_file()
+    });
+    crate::wsl::wsl_launcher(requested_command, valid_override)
+}
+
 fn child_has_exited(child: &Arc<Mutex<Box<dyn portable_pty::Child + Send + Sync>>>) -> bool {
     match child.lock() {
         Ok(mut child) => child
@@ -329,9 +341,24 @@ pub async fn spawn_pty(
         };
         let mut resolved_launcher: Option<String> = None;
         let mut command = if let Some(target) = wsl_target.as_ref() {
+            let initial_command = crate::wsl::wsl_launcher(
+                requested_command.as_deref(),
+                launcher_override.as_deref(),
+            )
+            .or(requested_command.as_deref());
             crate::wsl::command_builder_for_wsl(
                 target,
-                requested_command.as_deref(),
+                initial_command,
+                &extras,
+                env.as_ref(),
+            )
+        } else if let Some(launcher) = wsl_launcher_for_spawn(
+            requested_command.as_deref(),
+            launcher_override.as_deref(),
+        ) {
+            resolved_launcher = Some(launcher.trim().to_string());
+            crate::wsl::command_builder_for_wsl_launcher(
+                launcher.trim(),
                 &extras,
                 env.as_ref(),
             )
@@ -1858,6 +1885,58 @@ pub fn install_kill_on_close_guard() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wsl_launcher_override_routes_through_wsl_environment_setup() {
+        let temp_dir = std::env::temp_dir().join(format!("alethe-wsl-{}", nanoid::nanoid!()));
+        std::fs::create_dir_all(&temp_dir).expect("the temp directory must be creatable");
+        let launcher_path = temp_dir.join("wsl.exe");
+        std::fs::write(&launcher_path, b"").expect("the WSL launcher stub must be writable");
+        let launcher_override = launcher_path.to_string_lossy().to_string();
+        let launcher = wsl_launcher_for_spawn(Some("shell"), Some(&launcher_override))
+            .expect("the absolute WSL launcher override is recognized");
+        let builder = crate::wsl::command_builder_for_wsl_launcher(launcher, &[], None);
+        assert_eq!(
+            builder
+                .get_argv()
+                .iter()
+                .map(|arg| arg.to_string_lossy().to_string())
+                .collect::<Vec<_>>(),
+            vec![launcher_override]
+        );
+        assert_eq!(
+            builder
+                .get_env("WSL_UTF8")
+                .map(|value| value.to_string_lossy().to_string())
+                .as_deref(),
+            Some("1")
+        );
+        std::fs::remove_dir_all(temp_dir).expect("the temp directory must be removable");
+    }
+
+    #[test]
+    fn stale_wsl_launcher_override_falls_through_to_generic_resolution() {
+        let stale_path = std::env::temp_dir()
+            .join(format!("alethe-missing-{}", nanoid::nanoid!()))
+            .join("wsl.exe");
+        let stale_override = stale_path.to_string_lossy().to_string();
+        assert!(wsl_launcher_for_spawn(Some("shell"), Some(&stale_override)).is_none());
+    }
+
+    #[test]
+    fn existing_wsl_launcher_override_routes_to_wsl_builder() {
+        let temp_dir = std::env::temp_dir().join(format!("alethe-wsl-{}", nanoid::nanoid!()));
+        std::fs::create_dir_all(&temp_dir).expect("the temp directory must be creatable");
+        let launcher_path = temp_dir.join("wsl.exe");
+        std::fs::write(&launcher_path, b"").expect("the WSL launcher stub must be writable");
+        let launcher_override = launcher_path.to_string_lossy().to_string();
+
+        assert_eq!(
+            wsl_launcher_for_spawn(Some("shell"), Some(&launcher_override)),
+            Some(launcher_override.as_str())
+        );
+        std::fs::remove_dir_all(temp_dir).expect("the temp directory must be removable");
+    }
 
     #[cfg(not(windows))]
     #[test]
