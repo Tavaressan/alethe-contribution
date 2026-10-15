@@ -508,7 +508,7 @@
   min-height: 36px;
   display: grid;
   grid-template-columns: 13px 19px minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 5px;
   padding: 2px 5px 2px 1px;
   border: 0;
@@ -544,6 +544,7 @@
 .dragHandle {
   width: 13px;
   height: 24px;
+  margin-top: 4px;
   opacity: 0;
   cursor: grab;
   transition:
@@ -566,6 +567,7 @@
 .checkButton {
   width: 17px;
   height: 17px;
+  margin-top: 7.5px;
   border: 1.5px solid var(--fg-faint);
   border-radius: 5px;
   color: var(--fg-faint);
@@ -586,9 +588,9 @@
   min-width: 0;
   display: flex;
   align-items: center;
+  margin-top: 4px;
   gap: 5px;
   padding: 4px 0;
-  overflow: hidden;
   color: inherit;
   font-size: 12px;
   line-height: 1.35;
@@ -601,7 +603,6 @@
   flex: 1;
   min-width: 0;
   padding: 0;
-  overflow: hidden;
   color: inherit;
   background: transparent;
   border: 0;
@@ -612,9 +613,8 @@
 .todoTitleText {
   display: block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .projectLink {
@@ -676,6 +676,7 @@
 .editInput {
   width: 100%;
   height: 26px;
+  margin-top: 3px;
   padding: 0 6px;
   font-size: 12px;
 }
@@ -683,6 +684,8 @@
 .rowActions {
   display: inline-flex;
   align-items: center;
+  align-self: start;
+  margin-top: 6px;
   gap: 1px;
   width: 0;
   max-width: 0;
@@ -920,6 +923,23 @@
 
 :global([data-visual-style='clean']) .todoRow {
   padding: 2px 5px 2px 1px;
+}
+
+:global([data-visual-style='clean']) .dragHandle,
+:global([data-visual-style='clean']) .todoTitle {
+  margin-top: 1px;
+}
+
+:global([data-visual-style='clean']) .checkButton {
+  margin-top: 4.5px;
+}
+
+:global([data-visual-style='clean']) .rowActions {
+  margin-top: 3px;
+}
+
+:global([data-visual-style='clean']) .editInput {
+  margin-top: 0;
 }
 
 :global([data-visual-style='clean']) .composerBox {
