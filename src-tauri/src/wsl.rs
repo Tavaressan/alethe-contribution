@@ -587,6 +587,25 @@ pub fn command_builder_for_wsl(
         }
     }
 
+    add_wsl_environment(&mut builder, env);
+
+    builder
+}
+
+pub fn command_builder_for_wsl_launcher(
+    launcher: &str,
+    extra_args: &[String],
+    env: Option<&HashMap<String, String>>,
+) -> CommandBuilder {
+    let mut builder = CommandBuilder::new(launcher);
+    for arg in extra_args {
+        builder.arg(arg);
+    }
+    add_wsl_environment(&mut builder, env);
+    builder
+}
+
+fn add_wsl_environment(builder: &mut CommandBuilder, env: Option<&HashMap<String, String>>) {
     builder.env("TERM", "xterm-256color");
     builder.env("COLORTERM", "truecolor");
     // Without it `wsl.exe` writes its own messages and errors as UTF-16LE.
@@ -612,11 +631,20 @@ pub fn command_builder_for_wsl(
     }
     builder.env("WSLENV", wslenv.join(":"));
 
-    builder
 }
 
-fn is_wsl_launcher(command: &str) -> bool {
-    command.eq_ignore_ascii_case("wsl") || command.eq_ignore_ascii_case("wsl.exe")
+pub(crate) fn is_wsl_launcher(command: &str) -> bool {
+    let name = command.rsplit(['/', '\\']).next().unwrap_or(command);
+    name.eq_ignore_ascii_case("wsl") || name.eq_ignore_ascii_case("wsl.exe")
+}
+
+pub(crate) fn wsl_launcher<'a>(
+    command: Option<&'a str>,
+    launcher_override: Option<&'a str>,
+) -> Option<&'a str> {
+    command
+        .filter(|value| is_wsl_launcher(value.trim()))
+        .or_else(|| launcher_override.filter(|value| is_wsl_launcher(value.trim())))
 }
 
 const NEVER_CROSS: [&str; 5] = ["PATH", "HOME", "TMP", "TEMP", "WSLENV"];
@@ -1097,10 +1125,23 @@ mod tests {
 
     #[test]
     fn a_plain_wsl_terminal_opens_the_login_shell_of_its_distro() {
-        for launcher in ["wsl.exe", "WSL.EXE", "wsl"] {
+        for launcher in [
+            "wsl.exe",
+            "WSL.EXE",
+            "wsl",
+            r"C:\Windows\System32\wsl.exe",
+            "c:/windows/system32/WSL.EXE",
+            r"C:\Windows\System32\wsl",
+        ] {
             let builder = command_builder_for_wsl(&ubuntu(), Some(launcher), &[], None);
             assert_eq!(argv(&builder), vec!["wsl.exe", "-d", "Ubuntu"]);
         }
+    }
+
+    #[test]
+    fn launcher_matching_rejects_similar_basenames() {
+        assert!(!is_wsl_launcher(r"C:\tools\notwsl.exe"));
+        assert!(!is_wsl_launcher("wslg.exe"));
     }
 
     #[test]

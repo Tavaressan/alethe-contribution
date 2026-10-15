@@ -343,6 +343,7 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Fixed
 
+- **Absolute paths to `wsl.exe` now open WSL terminals correctly.** WSL launcher detection now matches the executable name regardless of path or casing, and shell path overrides receive WSL's terminal environment setup.
 - **Reconnecting a planner no longer starts a duplicate shell.** Asking the lead agent to open a dev
   server or watcher it already has running on the board (for example after reopening the app, or
   from a new planner terminal) now reuses that running shell and adopts it under the new planner,
