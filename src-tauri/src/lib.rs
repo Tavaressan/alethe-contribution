@@ -127,6 +127,23 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let args: Vec<String> = std::env::args().collect();
+    let action = cli_launch::parse_cli_action(&args);
+    if let Some(output) = cli_launch::cli_action_output(action) {
+        #[cfg(windows)]
+        unsafe {
+            use windows_sys::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+            let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+
+        use std::io::Write;
+        let stdout = std::io::stdout();
+        let mut stdout = stdout.lock();
+        let _ = stdout.write_all(output.as_bytes());
+        let _ = stdout.flush();
+        std::process::exit(0);
+    }
+
     // bugs conhecidos no Wayland — escala fracionada quebrando layout,
 
     // ("Error 71") em alguns drivers de GPU — documentados oficialmente em
