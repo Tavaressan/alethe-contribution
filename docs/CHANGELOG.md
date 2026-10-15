@@ -12,6 +12,10 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 
 ### Added
 
+- **Remote Control now shows agent conversations with session details and setup guidance.** Claude
+  Code and Codex transcripts display the selected session, model, and token total when available;
+  empty states explain how to share a terminal and pair a device.
+
 - **Turning on AI Memory now takes you to a working install, and recall actually works.** The switch
   in Preferences → Features grew a panel beneath it: whether ai-memory is there, a button to install
   it — the download checked against the hash the project publishes — and whether it is running, with
