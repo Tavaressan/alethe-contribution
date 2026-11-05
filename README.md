@@ -289,6 +289,13 @@ experience. Coherence over volume.
 
 Use the published installers from [Releases](https://github.com/Kc1t/alethe-agents/releases).
 
+On Arch Linux, install the [`alethe-bin`](https://aur.archlinux.org/packages/alethe-bin) package from
+the AUR and update it through your package manager:
+
+```sh
+yay -S alethe-bin
+```
+
 > [!WARNING]
 > Windows builds are **not code-signed yet**, so Defender may flag `alethe.exe` as
 > `Trojan:Win32/Bearfoos.A!ml` and quarantine it. The `!ml` suffix denotes a machine-learning
@@ -317,6 +324,13 @@ dependencies on Linux:
 
 ```sh
 sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+```
+
+On Arch Linux:
+
+```sh
+sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module \
+  libappindicator librsvg xdotool alsa-lib
 ```
 
 ```sh

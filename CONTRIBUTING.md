@@ -81,6 +81,13 @@ sudo apt update
 sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 ```
 
+On Arch Linux:
+
+```sh
+sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module \
+  libappindicator librsvg xdotool alsa-lib
+```
+
 **macOS** — install Xcode Command Line Tools: `xcode-select --install`.
 
 ### Clone and run
