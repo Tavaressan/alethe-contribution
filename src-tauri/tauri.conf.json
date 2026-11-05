@@ -65,6 +65,7 @@
     "createUpdaterArtifacts": true,
     "targets": "all",
     "publisher": "Kauã Miguel",
+    "category": "DeveloperTool",
     "shortDescription": "Terminal multiplexer GUI",
     "longDescription": "Alethe is a Windows-first terminal multiplexer GUI: projects on the left, split-pane terminals on the right, with sub-tabs per pane.",
     "icon": [
@@ -74,6 +75,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "linux": {
+      "deb": {
+        "depends": ["libasound2"]
+      }
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"

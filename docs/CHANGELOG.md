@@ -547,6 +547,8 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
   context file is created owner-only and never overwrites an existing one.
 
 ### Fixed
+- **Linux launcher and packages.** Alethe now appears under Development in Linux app launchers, and
+  the `.deb` declares the ALSA library the app needs to start.
 
 - **Handing a conversation to Codex survives its startup dialogs.** The handoff prompt now waits
   until Codex's composer is ready and no trust, hooks-review or update dialog is open, so it no longer
