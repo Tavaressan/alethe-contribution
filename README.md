@@ -289,13 +289,6 @@ experience. Coherence over volume.
 
 Use the published installers from [Releases](https://github.com/Kc1t/alethe-agents/releases).
 
-On Arch Linux, install the [`alethe-bin`](https://aur.archlinux.org/packages/alethe-bin) package from
-the AUR and update it through your package manager:
-
-```sh
-yay -S alethe-bin
-```
-
 > [!WARNING]
 > Windows builds are **not code-signed yet**, so Defender may flag `alethe.exe` as
 > `Trojan:Win32/Bearfoos.A!ml` and quarantine it. The `!ml` suffix denotes a machine-learning
