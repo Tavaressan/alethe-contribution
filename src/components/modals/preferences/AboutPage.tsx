@@ -33,7 +33,12 @@ import {
   releasePageUrl,
 } from '../../../lib/releases'
 import { openDataFolder, openInBrowser, openLogsFolder } from '../../../lib/tauri/filesystem'
-import { checkForUpdate, installPendingUpdate, installRelease } from '../../../lib/updater'
+import {
+  checkForUpdate,
+  installPendingUpdate,
+  installRelease,
+  packageManager,
+} from '../../../lib/updater'
 import { useUiStore } from '../../../stores/uiStore'
 import controls from '../controls.module.css'
 import styles from '../PreferencesModal.module.css'
@@ -66,19 +71,29 @@ function LinkButton({ Icon, label, url }: { Icon: LucideIcon; label: string; url
 
 export function AboutPage() {
   const [version, setVersion] = useState('')
+  const [manager, setManager] = useState<string | null>(null)
 
   useEffect(() => {
     void getVersion()
       .then(setVersion)
       .catch(() => setVersion(''))
+    void packageManager()
+      .then(setManager)
+      .catch(() => setManager(null))
   }, [])
 
   return (
     <>
       <VersionSection version={version} />
       <CreatorSection />
-      <UpdatesSection version={version} />
-      <OlderVersionsSection version={version} />
+      {manager === null ? (
+        <>
+          <UpdatesSection version={version} />
+          <OlderVersionsSection version={version} />
+        </>
+      ) : (
+        <ManagedUpdatesSection manager={manager} />
+      )}
       <ContributeSection />
       <InfoSection />
     </>
@@ -156,6 +171,23 @@ function CreatorSection() {
           ))}
         </div>
       </div>
+    </SettingsSection>
+  )
+}
+
+function ManagedUpdatesSection({ manager }: { manager: string }) {
+  const t = useT()
+  return (
+    <SettingsSection
+      id="app-updates"
+      title={t('prefs.aboutUpdatesTitle')}
+      description={t('prefs.aboutManagedDesc')}
+    >
+      <p className={about.note}>
+        {t('prefs.aboutManagedNote', {
+          manager: manager || t('prefs.aboutManagedGeneric'),
+        })}
+      </p>
     </SettingsSection>
   )
 }

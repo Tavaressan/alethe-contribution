@@ -11,6 +11,9 @@ Notable user-facing changes to **Alethe** are documented here. The format is bas
 ## [Unreleased]
 
 ### Added
+- **Package manager installs.** A distro package can install `/usr/share/alethe/managed-by` with the
+  name of its package manager. Alethe then stops looking for updates, `alethe update` refuses, and
+  Preferences → About names the package manager instead of offering updates or older versions.
 - **Agent Voice plugin.** A new plugin in the catalogue (Preferences → Plugins), kept in
   [its own repository](https://github.com/Kc1t/alethe-agent-voice), makes each terminal speak with
   its own Fish Audio voice when an agent finishes a turn: the first sentence or two of its reply, or

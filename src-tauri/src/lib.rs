@@ -463,6 +463,7 @@ pub fn run() {
             backup::import_backup,
             release_install::download_release,
             release_install::install_downloaded_release,
+            release_install::package_manager,
             github_sync::github_sync_status,
             github_sync::github_sync_set_token,
             github_sync::github_sync_logout,

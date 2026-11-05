@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchAletheReleases } from '../../../lib/releases'
 import { openInBrowser } from '../../../lib/tauri/filesystem'
 import { EMPTY_PROJECTS_FILE } from '../../../lib/types'
-import { installRelease } from '../../../lib/updater'
+import { installRelease, packageManager } from '../../../lib/updater'
 import { useProjectsStore } from '../../../stores/projectsStore'
 import { AboutPage } from './AboutPage'
 
@@ -32,6 +32,7 @@ vi.mock('../../../lib/updater', () => ({
   checkForUpdate: vi.fn(async () => null),
   installPendingUpdate: vi.fn(async () => {}),
   installRelease: vi.fn(() => new Promise<void>(() => {})),
+  packageManager: vi.fn(async () => null),
 }))
 
 vi.mock('../../../lib/releases', async (importOriginal) => ({
@@ -66,6 +67,29 @@ describe('AboutPage', () => {
     expect(openInBrowser).toHaveBeenCalledWith(
       'https://github.com/Kc1t/alethe-agents/issues/new?template=bug_report.yml',
     )
+  })
+
+  it('names the package manager instead of offering updates it owns', async () => {
+    vi.mocked(packageManager).mockResolvedValueOnce('pacman')
+    render(<AboutPage />)
+
+    expect(await screen.findByText(/installed by pacman/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Check for updates' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show older versions' })).not.toBeInTheDocument()
+  })
+
+  it('falls back to a generic name when the marker has none', async () => {
+    vi.mocked(packageManager).mockResolvedValueOnce('')
+    render(<AboutPage />)
+
+    expect(await screen.findByText(/installed by your package manager/)).toBeInTheDocument()
+  })
+
+  it('keeps the update controls on a self-updating install', async () => {
+    render(<AboutPage />)
+
+    expect(await screen.findByRole('button', { name: 'Check for updates' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show older versions' })).toBeInTheDocument()
   })
 
   it('lists only older releases and asks before installing one', async () => {

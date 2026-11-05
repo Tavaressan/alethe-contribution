@@ -10,6 +10,11 @@ export async function downloadRelease(
   await invoke('download_release', { version, onEvent: channel })
 }
 
+/** Who updates this install, or `null` when the app updates itself. Empty when unnamed. */
+export async function packageManager(): Promise<string | null> {
+  return invoke<string | null>('package_manager')
+}
+
 export async function installDownloadedRelease(): Promise<void> {
   await invoke('install_downloaded_release')
 }

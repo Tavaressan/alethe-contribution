@@ -36,6 +36,8 @@ Mac synced through: `v1.7.0` (`80e44a3`)
 
 ## Unreleased
 
+- `skip` (Linux only: the marker is a Linux path and the Mac app has its own updater) · `platform` · feat(updater): leave updates to the package manager that owns the install
+  - Files: `src-tauri/src/release_install.rs`, `src-tauri/src/cli_launch.rs`, `src/lib/updater.ts`
 - `pending` · `contract` · feat(agent-voice): terminals speak with their own Fish Audio voice when an agent finishes a turn
   - Files: `Kc1t/alethe-agent-voice` (`src/runtime.ts`, `src/engine.ts`), `src-tauri/src/agent_voice.rs`, `src-tauri/src/secure_store.rs`
   - Contract: new plugin storage record `plugin-data/alethe.agent-voice.json` key `settings` (`model`, `language` (`auto` or a locale id, for the built-in sentences), `muted`, `voices` per `claude|codex|opencode|shell`, `terminals` keyed by terminal id with `voiceId`/`muted`/`avatar`, the avatar being a 192 px square `data:image/(png|jpeg|webp);base64` URL up to 200,000 characters); new keychain secret `fish-audio-api-key`; new commands `agent_voice_key_status`, `agent_voice_set_key`, `agent_voice_tts` (POST `https://api.fish.audio/v1/tts`, `model` header, 16-bit mono PCM at 44.1 kHz streamed back in chunks over a channel, resolving with the total byte count). The Mac app needs its own queue, audio player, overlay and Personas sidebar panel; a turn end is 0.5 s of output silence after at least 0.5 s of `working` (the later `waiting` transition is skipped for that turn), and the spoken text is the first paragraph of the reply, up to 2 sentences or about 25 words, keeping the leading emotion tag; terminal output carrying `ESC ] 7777 ; voice ; <base64 utf-8 text> BEL` is spoken with that terminal's voice

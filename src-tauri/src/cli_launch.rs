@@ -27,6 +27,9 @@ pub enum CliUpdateReport {
     BlockedByRunningApp {
         available_version: String,
     },
+    ManagedInstall {
+        manager: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -110,6 +113,18 @@ pub fn format_update_outcome(result: Result<CliUpdateReport, String>) -> CliExit
                  `alethe update` again, or update from inside the app.\n"
             ),
         },
+        Ok(CliUpdateReport::ManagedInstall { manager }) => {
+            let manager = if manager.is_empty() {
+                "your package manager"
+            } else {
+                manager.as_str()
+            };
+            CliExit {
+                code: 1,
+                stdout: String::new(),
+                stderr: format!("alethe is installed by {manager}. Update it through {manager}.\n"),
+            }
+        }
         Err(err) => CliExit {
             code: 1,
             stdout: String::new(),
@@ -144,6 +159,10 @@ pub fn write_cli_exit(exit: &CliExit) {
 
 pub fn run_cli_update(mut context: tauri::Context<tauri::Wry>) -> CliExit {
     use tauri_plugin_updater::UpdaterExt;
+
+    if let Some(manager) = crate::release_install::managed_by() {
+        return format_update_outcome(Ok(CliUpdateReport::ManagedInstall { manager }));
+    }
 
     context.config_mut().app.windows.clear();
     let result = (|| -> Result<CliUpdateReport, String> {
@@ -465,6 +484,21 @@ mod tests {
         assert!(blocked
             .stderr
             .contains("alethe 1.8.0 is available, but Alethe is open."));
+
+        let managed = format_update_outcome(Ok(CliUpdateReport::ManagedInstall {
+            manager: "pacman".to_string(),
+        }));
+        assert_eq!(managed.code, 1);
+        assert!(managed.stdout.is_empty());
+        assert_eq!(
+            managed.stderr,
+            "alethe is installed by pacman. Update it through pacman.\n"
+        );
+
+        let unnamed = format_update_outcome(Ok(CliUpdateReport::ManagedInstall {
+            manager: String::new(),
+        }));
+        assert!(unnamed.stderr.contains("your package manager"));
 
         assert_eq!(
             format_install_start("1.7.0", "1.8.0"),

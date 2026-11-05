@@ -2,7 +2,9 @@ import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type DownloadEvent, type Update } from '@tauri-apps/plugin-updater'
 
 import { flushProjectsState } from '../stores/projectsStore'
-import { downloadRelease, installDownloadedRelease } from './tauri/releases'
+import { downloadRelease, installDownloadedRelease, packageManager } from './tauri/releases'
+
+export { packageManager }
 
 export type UpdateInfo = {
   version: string
@@ -17,7 +19,15 @@ export type UpdateProgress = { downloaded: number; total: number }
 
 let pending: Update | null = null
 
+async function refuseManagedInstall(): Promise<void> {
+  if ((await packageManager()) !== null) throw new Error('managed_install')
+}
+
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
+  if ((await packageManager()) !== null) {
+    pending = null
+    return null
+  }
   const update = await check()
   if (!update) {
     pending = null
@@ -35,6 +45,7 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
 export async function installPendingUpdate(
   onProgress?: (progress: UpdateProgress) => void,
 ): Promise<void> {
+  await refuseManagedInstall()
   // The banner lives in the store and outlives this module: a hot reload in development, or any
   // path that re-evaluates this file, leaves the notice on screen with nothing behind it. Asking
   // again costs one request and keeps the button honest instead of failing on a lost reference.
@@ -52,6 +63,7 @@ export async function installRelease(
   version: string,
   onProgress?: (progress: UpdateProgress) => void,
 ): Promise<void> {
+  await refuseManagedInstall()
   await downloadRelease(version, progressReporter(onProgress))
   await flushProjectsState().catch(() => {})
   await installDownloadedRelease()

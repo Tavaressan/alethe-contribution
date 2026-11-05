@@ -1,3 +1,5 @@
+#[cfg(target_os = "linux")]
+use std::path::Path;
 use std::sync::Mutex;
 
 use serde::Serialize;
@@ -6,6 +8,11 @@ use tauri::{AppHandle, State, Url};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const RELEASES_DOWNLOAD_URL: &str = "https://github.com/Kc1t/alethe-agents/releases/download";
+
+/// Distro packages install this file to say who updates the app. It declares ownership and is not
+/// a security boundary: repackaged binaries keep their bundle type, so the updater cannot tell.
+#[cfg(target_os = "linux")]
+const MANAGED_BY_PATH: &str = "/usr/share/alethe/managed-by";
 
 #[derive(Default)]
 pub struct PendingRelease(Mutex<Option<(Update, Vec<u8>)>>);
@@ -39,6 +46,51 @@ fn release_manifest_url(version: &str) -> Result<Url, String> {
         .map_err(|error| error.to_string())
 }
 
+#[cfg(target_os = "linux")]
+fn manager_name(contents: &str) -> String {
+    let name = contents.lines().next().unwrap_or_default().trim();
+    let valid = name.len() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "._+-".contains(c));
+    if valid {
+        name.to_string()
+    } else {
+        String::new()
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn managed_by_marker(marker: &Path, in_appimage: bool) -> Option<String> {
+    // An AppImage updates itself, even on a machine that also has the distro package installed.
+    if in_appimage || !marker.exists() {
+        return None;
+    }
+    Some(manager_name(
+        &std::fs::read_to_string(marker).unwrap_or_default(),
+    ))
+}
+
+/// The package manager that owns this install. An empty name means the marker names none.
+pub fn managed_by() -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        managed_by_marker(
+            Path::new(MANAGED_BY_PATH),
+            std::env::var_os("APPIMAGE").is_some(),
+        )
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        None
+    }
+}
+
+#[tauri::command]
+pub fn package_manager() -> Option<String> {
+    managed_by()
+}
+
 #[tauri::command]
 pub async fn download_release(
     app: AppHandle,
@@ -46,6 +98,9 @@ pub async fn download_release(
     version: String,
     on_event: Channel<ReleaseDownloadEvent>,
 ) -> Result<(), String> {
+    if managed_by().is_some() {
+        return Err("managed_install".to_string());
+    }
     let endpoint = release_manifest_url(&version)?;
     let wanted = version.clone();
     let update = app
@@ -122,6 +177,42 @@ mod tests {
             assert!(!is_release_version(version), "{version}");
             assert!(release_manifest_url(version).is_err(), "{version}");
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn reads_the_manager_name_from_the_marker() {
+        use super::manager_name;
+
+        assert_eq!(manager_name("pacman\n"), "pacman");
+        assert_eq!(manager_name("  nix-env  \nignored"), "nix-env");
+        assert_eq!(manager_name(""), "");
+        assert_eq!(manager_name("not a name"), "");
+        assert_eq!(manager_name(&"a".repeat(65)), "");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_marker_disables_updates_except_inside_an_appimage() {
+        use super::managed_by_marker;
+
+        let dir = std::env::temp_dir().join(format!("alethe-marker-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let marker = dir.join("managed-by");
+
+        assert_eq!(managed_by_marker(&marker, false), None);
+
+        std::fs::write(&marker, "pacman\n").unwrap();
+        assert_eq!(
+            managed_by_marker(&marker, false),
+            Some("pacman".to_string())
+        );
+        assert_eq!(managed_by_marker(&marker, true), None);
+
+        std::fs::write(&marker, "").unwrap();
+        assert_eq!(managed_by_marker(&marker, false), Some(String::new()));
+
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

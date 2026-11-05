@@ -2916,6 +2916,10 @@ export const ptBR: Record<MessageKey, string> = {
   'prefs.aboutVersionDesc': 'A build do Alethe instalada no momento.',
   'prefs.aboutUpdatesTitle': 'Atualizações',
   'prefs.aboutUpdatesDesc': 'Verifique e instale novas versões do Alethe.',
+  'prefs.aboutManagedDesc': 'Novas versões do Alethe chegam pelos pacotes do sistema.',
+  'prefs.aboutManagedNote':
+    'Esta cópia do Alethe foi instalada por {manager}. Use-o para atualizar ou trocar de versão.',
+  'prefs.aboutManagedGeneric': 'seu gerenciador de pacotes',
   'prefs.aboutCheckUpdates': 'Verificar atualizações',
   'prefs.aboutChecking': 'Verificando…',
   'prefs.aboutUpToDate': 'Você está na versão mais recente (v{version}).',

@@ -2884,6 +2884,10 @@ export const en = {
   'prefs.aboutVersionDesc': 'The Alethe build currently installed.',
   'prefs.aboutUpdatesTitle': 'Updates',
   'prefs.aboutUpdatesDesc': 'Check for and install new versions of Alethe.',
+  'prefs.aboutManagedDesc': 'New versions of Alethe arrive through your system packages.',
+  'prefs.aboutManagedNote':
+    'This copy of Alethe is installed by {manager}. Use it to update or change versions.',
+  'prefs.aboutManagedGeneric': 'your package manager',
   'prefs.aboutCheckUpdates': 'Check for updates',
   'prefs.aboutChecking': 'Checking…',
   'prefs.aboutUpToDate': "You're on the latest version (v{version}).",
